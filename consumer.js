@@ -18,5 +18,5 @@ consumer
     consumer.consume();
   })
   .on('data', function (data) {
-    console.log(`received message: ${eventType.fromBuffer(data.value)}`);
+    console.log(`Received message: ${eventType.fromBuffer(data.value)}`);
   });

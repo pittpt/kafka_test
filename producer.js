@@ -23,7 +23,7 @@ function queueRandomMessage() {
   const event = { category, noise };
   const success = stream.write(eventType.toBuffer(event));
   if (success) {
-    console.log(`message queued (${JSON.stringify(event)})`);
+    console.log(`Message queued (${JSON.stringify(event)})`);
   } else {
     console.log('Too many messages in the queue already..');
   }
