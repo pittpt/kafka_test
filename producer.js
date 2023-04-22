@@ -1,51 +1,58 @@
-import Kafka from 'node-rdkafka';
-import eventType from '/Users/pittpongpittayapa/VSCode/kafka_test/eventType.js';
+import { Kafka } from 'kafkajs';
+import https from 'https';
 
-const stream = Kafka.Producer.createWriteStream(
-  {
-    'metadata.broker.list': 'localhost:9092',
-  },
-  {},
-  {
-    topic: 'test',
-  }
-);
-
-stream.on('error', (err) => {
-  console.error('Error in our kafka stream');
-  console.error(err);
+const kafka = new Kafka({
+  clientId: 'my-app',
+  brokers: ['localhost:9092'],
 });
 
-function queueRandomMessage() {
-  const category = getRandomAnimal();
-  const noise = getRandomNoise(category);
+const producer = kafka.producer();
 
-  const event = { category, noise };
-  const success = stream.write(eventType.toBuffer(event));
-  if (success) {
-    console.log(`Message queued (${JSON.stringify(event)})`);
-  } else {
-    console.log('Too many messages in the queue already..');
+const produceMessage = async () => {
+  try {
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repositories',
+      method: 'GET',
+      headers: { 'user-agent': 'node.js' },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', async () => {
+        const message = {
+          value: JSON.stringify(data),
+        };
+        await producer.connect();
+        await producer.send({
+          topic: 'test',
+          messages: [message],
+        });
+        // messages: [{ value: 'Hello KafkaJS!' }],
+
+        console.log('Message sent successfully!');
+        await producer.disconnect();
+      });
+    });
+
+    req.on('error', (error) => {
+      console.error(error);
+    });
+
+    req.end();
+  } catch (err) {
+    console.error('Error sending message: ', err);
   }
-}
+  // finally {
+  //   await producer.disconnect();
+  // }
+};
 
-function getRandomAnimal() {
-  const categories = ['CAT', 'DOG'];
-  return categories[Math.floor(Math.random() * categories.length)];
-}
+produceMessage();
 
-function getRandomNoise(animal) {
-  if (animal === 'CAT') {
-    const noises = ['meow', 'purr'];
-    return noises[Math.floor(Math.random() * noises.length)];
-  } else if (animal === 'DOG') {
-    const noises = ['bark', 'woof'];
-    return noises[Math.floor(Math.random() * noises.length)];
-  } else {
-    return 'silence..';
-  }
-}
-
-setInterval(() => {
-  queueRandomMessage();
-}, 3000);
+// setInterval(() => {
+//   produceMessage();
+// }, 1000);
